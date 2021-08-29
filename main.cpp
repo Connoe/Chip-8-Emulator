@@ -73,7 +73,8 @@ int main(int argc, char* args[])
 			exit(1);
 		}
 
-		SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+		SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);//		SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+
 
 		texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 64, 32);
 		if (texture == nullptr)
@@ -88,8 +89,8 @@ int main(int argc, char* args[])
 
 	bool loop = true;
 	SDL_Event sdl_event;
-	Uint32* pixels = new Uint32[640 * 480];
-	memset(pixels, 255, 640 * 480 * sizeof(Uint32));
+	Uint32* pixels = new Uint32[64 * 32];
+	memset(pixels, 255, 64 * 32 * sizeof(Uint32));
 
 	while (loop) {
 		
@@ -98,15 +99,19 @@ int main(int argc, char* args[])
 		
 
 		//std::cout << "Current Opcode: " << std::hex << opcode << "\n";
-		/*
+		
+		std::cout <<" NEW LOOP "<< "\n";
 
-		std::cout << PC << "\n";
-		std::cout << (PC-2) << "\n";
-		std::cout << "----------" << "\n";
+		std::cout << std::hex<<PC << "\n";
+		std::cout << std::hex<<(PC-2) << "\n";
+		std::cout << std::hex  << opcode << "\n";
 		std::dec;
-		*/
+
+		PC += 2;
 		executeInstr(opcode);
-		PC += 2; //sets program counter to next instruction
+		//sets program counter to next instruction
+
+
 		while (SDL_PollEvent(&sdl_event) != 0)
 		{
 			if (sdl_event.type == SDL_QUIT)
@@ -120,32 +125,31 @@ int main(int argc, char* args[])
 
 		if (draw) {
 			//std::cout << "drawing";
-			SDL_UpdateTexture(texture, NULL, pixels, 64 * sizeof(Uint32));
+
 			draw = false;
 
 			
-			for (int i = 0; i < 2048; i++) {//2048 == 32* 64
+			for (int i = 0; i < 32*64; i++) {//2048 == 32* 64//gfx[i]
 				if (!gfx[i]) { //if the pixel is 0
 					pixels[i] = 0;
 				}
 				else {
-					std::cout << "setting pixel: " << i << "\n";
-					pixels[i] = 255;
+					//std::cout << "setting pixel: " << i << "\n";
+					pixels[i] = 0xFFFFFFFF;
 				}
 			}
+
+			SDL_UpdateTexture(texture, NULL, pixels, 64 * sizeof(Uint32));
 			
-
 			SDL_RenderCopy(renderer, texture, NULL, NULL);
-			SDL_RenderClear(renderer);
 			SDL_RenderPresent(renderer);
-
-
-			if (delay_timer > 0)
-				delay_timer--;
-			if (sound_timer > 0)
-				sound_timer--;
 		}
 		//SDL_BlitSurface(screenSurface, NULL, screenSurface, NULL);
+		
+		if (delay_timer > 0)
+			delay_timer--;
+		if (sound_timer > 0)
+			sound_timer--;
 
 		//Update the surface
 		SDL_UpdateWindowSurface(window);
