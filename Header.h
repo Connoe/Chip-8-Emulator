@@ -5,7 +5,7 @@
 #include <thread>
 #include <fstream>
 
-unsigned char V[16];
+uint8_t  V[16];
 unsigned I; //index register
 unsigned short PC = 0x0; //program counter/instruction pointer
 
@@ -76,11 +76,13 @@ void executeInstr(short instr) {
 	short first = (instr >> 12) & 0x00F;
 	short reg;
 	short last = instr & 0x000F;
-	short value, NNN, regx, regy, newLoc, newreg;
+	unsigned short value, NNN, regx, regy, newLoc, newreg;
+	regx = (instr >> 8) & 0x0F;
+	regy = (instr >> 4) & 0x0F;
+	short SecondToLast = (instr >> 4) & 0x000F;
 	switch (first) {
 	case 0:
 		if (instr == 0x00E0) {
-			std::cout << "cleared screen\n" ;
 			memset(gfx, 0, sizeof(gfx));
 			draw = true;
 			//clear screen, set all pixels to 0
@@ -97,7 +99,10 @@ void executeInstr(short instr) {
 	case 1: //1nnn - JP addr
 		newLoc = instr & 0x0FFF;
 		PC = newLoc;
-		std::cout << "JP TO : " << std::hex <<PC << std::endl;
+		std::cout << "JMP INSTRUCTION" << std::endl;
+		std::cout << "PC: " << std::hex << PC << std::endl;
+		std::cout << "JP TO : " << std::hex << newLoc << std::endl;
+		std::cout <<"INSTR: " << std::hex << instr << std::endl;
 		std::dec;
 		break;
 	case 2: //2nnn - CALL addr, nnn= addr
@@ -205,7 +210,7 @@ void executeInstr(short instr) {
 			}
 			V[regx] = (uint8_t)V[regy] - (uint8_t)V[regx];
 			break;
-		case 0xE:/*Store the value of register VY shifted left one bit in register VX�
+		case 0xE:/*Store the value of register VY shifted left one bit in register VX¹
 						Set register VF to the most significant bit prior to the shift
 						VY is unchanged*/
 			regx = (instr >> 8) & 0x0F;
@@ -214,8 +219,12 @@ void executeInstr(short instr) {
 			V[regx] = V[regy] << 0x1;
 			V[regx] = (uint8_t)V[regx];
 			break;
+		default:
+			std::cout << "NOT FOUND: " << std::hex << instr << std::endl;
+			std::dec;
+			break;
 		}
-	
+
 		break;
 	case 9://Skip the following instruction if the value of register VX is not equal to the value of register VY
 		regx = (instr >> 8) & 0x0F;
@@ -230,8 +239,12 @@ void executeInstr(short instr) {
 		break;
 	case 0xB://Jump to address NNN + V0
 		NNN = instr & 0x0FFF;
-		newLoc = NNN + V[0x0];
-		PC = newLoc;
+		newLoc = NNN + V[0];
+		std::cout << "New Loc: " << std::hex << newLoc << std::endl;
+		std::cout << "NNN: " << std::hex << NNN << std::endl;
+		std::cout << "V0: " << std::hex << V[0] << std::endl;
+		PC += newLoc;
+		std::cout << "PC: " << std::hex << PC << std::endl;
 		break;
 	case 0xC://Set VX to a random number with a mask of NN
 		regx = (instr >> 8) & 0x0F;
@@ -241,34 +254,80 @@ void executeInstr(short instr) {
 	case 0xD:/*Draw a sprite at position VX, VY with N bytes of sprite data starting at the address stored in I
 			   Set VF to 01 if any set pixels are changed to unset, and 00 otherwise*/
 	{
-		std::cout << "Drawing\n";
+		//std::cout << "Drawing\n";
 		regx = (instr >> 8) & 0x0F;
 		regy = (instr >> 4) & 0x0F;
-		int x = V[regx];
-		int y = V[regy];
-		std::cout<<std::dec << "X: " << x << " Y: " << y << std::endl;
+		int x = V[regx] % 64;
+		int y = V[regy] % 32;
+
 		int wt = 8;
-		int ht = instr & 0x000F; // N ==hieght
+		int N = instr & 0x000F; // N ==hieght
 		V[0xF] = 0;
-		for (int i = 0; i < ht; i++) {
+		for (int i = 0; i < N; i++) {
 			int pixel = memory[I + i];
 			for (int A = 0; A < wt; A++) {
 				if (pixel & (0x80 >> x)) {
 					int pix = ((x + A) + ((y + i) * 64)) % 2048;
-					std::cout << pix << std::endl;
-					if (gfx[pix] == 1)
+					//std::cout << pix << std::endl;
+					if (gfx[pix] == 1) {
 						V[0xF] = 1;
+					}
 					gfx[pix] ^= 1;
 				}
 			}
 		}
 		draw = true;
+		break;
 	}
-	break;
-
-	case 0xE://EX9E
+	case 0xE://EX9E & EXA1
 		regx = (instr >> 8) & 0x0F;
-		//if (){}
+		//TODO
+		break;
+	case 0xF://Store the current value of the delay timer in register VX
+		switch (last) {
+		case 7://Store the current value of the delay timer in register VX
+			regx = (instr >> 8) & 0x0F;
+			V[regx] = delay_timer;
+			break;
+		case 0xA://Wait for a keypress and store the result in register VX
+			//TODO
+			break;
+		case 0x8://Set the sound timer to the value of register VX
+			sound_timer = V[regx];
+			break;
+		case 0xE://Add the value stored in register VX to register I
+			I = V[regx] + I;
+			break;
+		case 9://Set I to the memory address of the sprite data corresponding to the hexadecimal digit stored in register VX
+			//TOOD
+			break;
+		case 3://Store the binary-coded decimal equivalent of the value stored in register VX at addresses I, I + 1, and I + 2
+			//TODO
+			break;
+		case 5:
+			switch (SecondToLast) {
+			case 1://set delay_timer to regx
+				delay_timer = V[regx];
+				break;
+			case 5://Store the values of registers V0 to VX inclusive in memory starting at address I, I is set to I + X + 1 after operation²
+				//TODO
+				break;
+			case 6://Fill registers V0 to VX inclusive with the values stored in memory starting at address I, I is set to I + X + 1 after operation²
+				//TODO
+				break;
+			default:
+				std::cout << "NOT FOUND: " << std::hex << instr << std::endl;
+				std::dec;
+				break;
+			}
+			break;
+		default:
+			std::cout << "NOT FOUND: " << std::hex << instr << std::endl;
+			std::dec;
+			break;
+		}
+
+
 		break;
 	default:
 		std::cout << "NOT FOUND: " << std::hex<<instr<<std::endl;
