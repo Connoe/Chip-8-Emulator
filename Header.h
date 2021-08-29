@@ -56,7 +56,7 @@ bool load_rom(std::string path) {
 	std::ifstream f(path, std::ifstream::in | std::ifstream::binary);
 
 	if (!f.is_open()) {
-		std::cout << "its not open cuh";
+		std::cout << "its not open";
 		return false;
 	}
 
@@ -65,7 +65,7 @@ bool load_rom(std::string path) {
 
 	for (int i = 0x200; f.get(c); i++) {
 		if (a >= 4096) {
-			std::cout << "bigger than 4096 nigga";
+			std::cout << "bigger than 4096";
 			return false;
 		}
 
