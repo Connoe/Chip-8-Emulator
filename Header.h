@@ -5,6 +5,10 @@
 #include <thread>
 #include <fstream>
 
+//Screen dimension constants
+const int SCREEN_WIDTH = 640;//640
+const int SCREEN_HEIGHT = 320;//320
+
 uint8_t  V[16];
 unsigned I; //index register
 unsigned short PC = 0x0; //program counter/instruction pointer
@@ -52,7 +56,7 @@ bool load_rom(std::string path) {
 	std::ifstream f(path, std::ifstream::in | std::ifstream::binary);
 
 	if (!f.is_open()) {
-		std::cout << "its not open";
+		std::cout << "its not open cuh";
 		return false;
 	}
 
@@ -61,7 +65,7 @@ bool load_rom(std::string path) {
 
 	for (int i = 0x200; f.get(c); i++) {
 		if (a >= 4096) {
-			std::cout << "bigger than 4096";
+			std::cout << "bigger than 4096 nigga";
 			return false;
 		}
 
@@ -263,16 +267,16 @@ void executeInstr(short instr) {
 		int wt = 8;
 		int N = instr & 0x000F; // N ==hieght
 		V[0xF] = 0;
-		for (int i = 0; i < N; i++) {
-			int pixel = memory[I + i];
-			for (int A = 0; A < wt; A++) {
-				if (pixel & (0x80 >> x)) {
-					int pix = ((x + A) + ((y + i) * 64)) % 2048;
-					//std::cout << pix << std::endl;
-					if (gfx[pix] == 1) {
+		for (int row = 0; row < N; row++) {
+			uint8_t pixel = memory[I + row];
+			for (int col = 0; col < wt; col++) {
+				uint8_t spritePixel = pixel & (0x80u >> col);
+				bool* screenPixel = &gfx[(y + row) * 64 + (x + col)];
+				if (spritePixel) {
+					if (*screenPixel == 1) {
 						V[0xF] = 1;
 					}
-					gfx[pix] ^= 1;
+					*screenPixel ^= 1;
 				}
 			}
 		}
